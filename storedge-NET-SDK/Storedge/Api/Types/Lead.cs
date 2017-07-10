@@ -54,7 +54,7 @@ namespace storedge_NET_SDK.Storedge.Api.Types
         public UnitAmenity[] unit_amenities { get; set; }
         public CurrentUser current_user { get; set; }
         public UnitType unit_type { get; set; }
-        public string close_reason { get; set; }
+        public CloseReason close_reason { get; set; }
         public InvoiceableItem[] invoiceable_fees { get; set; }
         public DiscountPlan[] discount_plans { get; set; }
         public LeadContents[] lead_contents { get; set; }
@@ -62,5 +62,16 @@ namespace storedge_NET_SDK.Storedge.Api.Types
         public CreatedBy created_by { get; set; }
         public string channel_id { get; set; }
         public string confirmation_email { get; set; }
+        
+        public TenantAttributes tenant_attributes { get; set; }
+        public bool? is_reservation { get; set; }
+        public string unit_id { get; set; }
+        public string call_source { get; set; }
+        public string dnis { get; set; }
+        public string close_reason_id { get; set; }
+        public string lead_action_performed { get; set; }
+        public int? lead_action_performed_index { get; set; }
+        public Note[] notes_attributes { get; set; }
+        public PhoneNumber caller_phone_number_attributes { get; set; }
     }
 }

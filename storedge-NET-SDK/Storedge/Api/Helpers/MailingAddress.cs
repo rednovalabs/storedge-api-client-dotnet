@@ -16,5 +16,7 @@
         public string time_zone_offset { get; set; }
         public bool? invalid_data { get; set; }
         public string label { get; set; }
+        
+        public string time_zone { get; set; }
     }
 }

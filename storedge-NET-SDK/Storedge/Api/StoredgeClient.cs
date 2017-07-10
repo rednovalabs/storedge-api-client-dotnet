@@ -24,26 +24,35 @@ namespace storedge_NET_SDK.Storedge.Api
         //GET
         protected string Get(RestRequest request)
         {
-            var response = "";
+            IRestResponse response = new RestResponse();
                 
             //Try toexecute request
             try
             {
-                response = _consumer.Execute(request).Content;
+                response = _consumer.Execute(request);
+                
+                if (response.StatusCode != System.Net.HttpStatusCode.OK)
+                    throw new Exception(response.Content);
             }
-            catch (Exception error)
+            catch (Exception e)
             {
-                Console.WriteLine("Error executing request: " + error.Message);
+                var error = JsonConvert.DeserializeObject<ErrorResponse>(e.Message);
+                Console.WriteLine("\nError status code: " + error.meta.error_code);
+                Console.WriteLine("Error executing request: " + error.meta.message);
             }
 
-            return response;
+            return response.Content;
         }
 
         //POST, PATCH, PUT
         protected string Forward(RestRequest request, object json)
         {
-            var response = "";
-            var jsonData = JsonConvert.SerializeObject(json);
+            IRestResponse response = new RestResponse();
+            var jsonData = JsonConvert.SerializeObject(json, 
+                            Formatting.None, 
+                            new JsonSerializerSettings { 
+                                NullValueHandling = NullValueHandling.Ignore
+                            });
             
             request.AddParameter("application/json; charset=utf-8", jsonData, ParameterType.RequestBody);
             request.RequestFormat = DataFormat.Json;
@@ -51,32 +60,39 @@ namespace storedge_NET_SDK.Storedge.Api
             //Try to execute request
             try
             {
-                response = _consumer.Execute(request).Content;
+                response = _consumer.Execute(request);
+
+                if (response.StatusCode != System.Net.HttpStatusCode.OK)
+                    throw new Exception(response.Content);
             }
-            catch (Exception error)
+            catch (Exception e)
             {
-                Console.WriteLine("Error executing request: " + error.Message);
+                var error = JsonConvert.DeserializeObject<ErrorResponse>(e.Message);
+                Console.WriteLine("\nError status code: " + error.meta.error_code);
+                Console.WriteLine("Error executing request: " + error.meta.message);
             }
             
-            return response;
+            return response.Content;
         }
         
         //DELETE
         protected string Delete(RestRequest request)
         {
-            var response = "";
+            IRestResponse response = new RestResponse();
             
             //Try to execute request
             try
             {
-                response = _consumer.Execute(request).Content;
+                response = _consumer.Execute(request);
             }
-            catch (Exception error)
+            catch (Exception e)
             {
-                Console.WriteLine("Error executing request: " + error.Message);
+                var error = JsonConvert.DeserializeObject<ErrorResponse>(e.Message);
+                Console.WriteLine("\nError status code: " + error.meta.error_code);
+                Console.WriteLine("Error executing request: " + error.meta.message);
             }
 
-            return response;
+            return response.Content;
         }
 
         protected void Load(RestRequest request, Options options)
@@ -89,32 +105,40 @@ namespace storedge_NET_SDK.Storedge.Api
             }
         }
 
-        //Units
-        public UnitResponse GetAllUnits(string facilityId, Options options)
+        //Leads
+        public LeadResponse GetLeads(string facilityId, Options options)
         {
-            var request = new RestRequest(facilityId + "/units", Method.GET);
+            var request = new RestRequest(facilityId + "/leads", Method.GET);
             Load(request, options);
             var response = Get(request);
             
-            return JsonConvert.DeserializeObject<UnitResponse>(response);
+            return JsonConvert.DeserializeObject<LeadResponse>(response);
         }
         
-        public SpecificUnitResponse GetSpecificUnits(string facilityId, string unitId, Options options)
+        public SpecificLeadResponse CreateLead(string facilityId, PaymentMethod paymentData, Lead leadData, Options options)
         {
-            var request = new RestRequest(facilityId + "/units/" + unitId, Method.GET);
+            var request = new RestRequest(facilityId + "/leads", Method.POST);
             Load(request, options);
-            var response = Get(request);
-            
-            return JsonConvert.DeserializeObject<SpecificUnitResponse>(response);
+            var param = new JsonObject{{"payment_method", paymentData}, {"lead", leadData}};
+            var response = Forward(request, param);
+
+            return JsonConvert.DeserializeObject<SpecificLeadResponse>(response);
         }
         
-        public UnitResponse GetAvailableUnits(string facilityId, Options options)
+        public SpecificLeadResponse DeleteLead(string facilityId, string leadId, Parameters param)
         {
-            var request = new RestRequest(facilityId + "/units/available", Method.GET);
-            Load(request, options);
-            var response = Get(request);
+            var request = new RestRequest(facilityId + "/leads/" + leadId, Method.DELETE);
+            request.AddQueryParameter("lead[close_reason_id]", param.GetSpecific("close_reason_id", 0));
+            if (param.HasKey("notes_attributes"))
+            {
+                foreach (var note in param.Get("notes_attributes"))
+                {
+                    request.AddQueryParameter("lead[notes_attributes][][note]", note);
+                }
+            }
+            var response = Delete(request);
             
-            return JsonConvert.DeserializeObject<UnitResponse>(response);
+            return JsonConvert.DeserializeObject<SpecificLeadResponse>(response);
         }
         
         //Tenants
@@ -147,22 +171,61 @@ namespace storedge_NET_SDK.Storedge.Api
             
             return JsonConvert.DeserializeObject<SpecificTenantResponse>(response);
         }
-
-        //Leads
-        public SpecificLeadResponse DeleteLead(string facilityId, string leadId, Parameters param)
+        
+        //Unit groups
+        public UnitGroupResponse GetUnitGroups(string facilityId, Options options)
         {
-            var request = new RestRequest(facilityId + "/leads/" + leadId, Method.DELETE);
-            request.AddQueryParameter("lead[close_reason_id]", param.GetSpecific("close_reason_id", 0));
-            if (param.HasKey("notes_attributes"))
-            {
-                foreach (var note in param.Get("notes_attributes"))
-                {
-                    request.AddQueryParameter("lead[notes_attributes][][note]", note);
-                }
-            }
-            var response = Delete(request);
+            var request = new RestRequest(facilityId + "/unit_groups", Method.GET);
+            Load(request, options);
+            var response = Get(request);
+            
+            return JsonConvert.DeserializeObject<UnitGroupResponse>(response);
+        }
+        
+        public SpecificUnitGroupResponse GetSpecificUnitGroup(string facilityId, string unitGroupId, Options options)
+        {
+            var request = new RestRequest(facilityId + "/unit_groups/" + unitGroupId, Method.GET);
+            Load(request, options);
+            var response = Get(request);
+            
+            return JsonConvert.DeserializeObject<SpecificUnitGroupResponse>(response);
+        }
+        
+        public UnitResponse GetUnitGroupUnits(string facilityId, string unitGroupId, Options options)
+        {
+            var request = new RestRequest(facilityId + "/unit_groups/" + unitGroupId + "/units", Method.GET);
+            Load(request, options);
+            var response = Get(request);
+            
+            return JsonConvert.DeserializeObject<UnitResponse>(response);
+        }
 
-            return JsonConvert.DeserializeObject<SpecificLeadResponse>(response);
+        //Units
+        public UnitResponse GetAllUnits(string facilityId, Options options)
+        {
+            var request = new RestRequest(facilityId + "/units", Method.GET);
+            Load(request, options);
+            var response = Get(request);
+            
+            return JsonConvert.DeserializeObject<UnitResponse>(response);
+        }
+        
+        public SpecificUnitResponse GetSpecificUnits(string facilityId, string unitId, Options options)
+        {
+            var request = new RestRequest(facilityId + "/units/" + unitId, Method.GET);
+            Load(request, options);
+            var response = Get(request);
+            
+            return JsonConvert.DeserializeObject<SpecificUnitResponse>(response);
+        }
+        
+        public UnitResponse GetAvailableUnits(string facilityId, Options options)
+        {
+            var request = new RestRequest(facilityId + "/units/available", Method.GET);
+            Load(request, options);
+            var response = Get(request);
+            
+            return JsonConvert.DeserializeObject<UnitResponse>(response);
         }
 
     }

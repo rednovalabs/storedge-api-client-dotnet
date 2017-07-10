@@ -87,7 +87,7 @@ Console.WriteLine("\nUpdate tenant request status code: " + updatedTenant2.meta.
 //Create parameters to send with delete request
 var param = new Parameters();
 var notes = new List<string>{"A++ would rent again!"};
-var closeReason = new List<string>{"1589a50b-f300-493e-ba95-70416baf216c"};
+var closeReason = new List<string>{"[ID]"};
 param.SetParameter("notes_attributes", notes);
 param.SetParameter("close_reason_id", closeReason);
 
@@ -115,7 +115,7 @@ Available Units:
  * 502
 
 Kelvin signed up!
- * Account Number: 1000275
+ * Account Number: [NUMBER]
 
 Kelvin has changed their password!
 
